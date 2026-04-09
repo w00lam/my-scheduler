@@ -1,7 +1,9 @@
 package com.woolam.myscheduler.service;
 
 import com.woolam.myscheduler.dto.*;
+import com.woolam.myscheduler.entity.Comment;
 import com.woolam.myscheduler.entity.Schedule;
+import com.woolam.myscheduler.repository.CommentRepository;
 import com.woolam.myscheduler.repository.ScheduleRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
+    private final CommentRepository commentRepository;
 
     /**
      * <p>새로운 일정을 생성하고 저장합니다.</p>
@@ -33,6 +36,11 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleCreateResponse createSchedule(ScheduleCreateRequest request) {
+        validateText(request.getTitle(), 30, "일정 제목");
+        validateText(request.getDescription(), 200, "일정 내용");
+        validateText(request.getAuthor(), "작성자명");
+        validateText(request.getAuthor(), "비밀번호");
+
         Schedule schedule = new Schedule(
                 request.getTitle(),
                 request.getDescription(),
@@ -59,15 +67,15 @@ public class ScheduleService {
      * @return 조건에 맞는 일정 상세 정보 목록
      */
     @Transactional(readOnly = true)
-    public List<ScheduleGetResponse> getSchedules(ScheduleGetRequest request) {
+    public List<ScheduleGetAllResponse> getSchedules(ScheduleGetRequest request) {
         List<Schedule> schedules = Optional.ofNullable(request.getAuthor())
                 .filter(author -> !author.isBlank())
                 .map(scheduleRepository::findByAuthorOrderByUpdatedAtDesc)
                 .orElseGet(scheduleRepository::findAllByOrderByUpdatedAtDesc);
-        List<ScheduleGetResponse> dtos = new ArrayList<>();
+        List<ScheduleGetAllResponse> dtos = new ArrayList<>();
 
         for (Schedule schedule : schedules) {
-            ScheduleGetResponse dto = new ScheduleGetResponse(
+            ScheduleGetAllResponse dto = new ScheduleGetAllResponse(
                     schedule.getId(),
                     schedule.getTitle(),
                     schedule.getDescription(),
@@ -82,20 +90,37 @@ public class ScheduleService {
     }
 
     /**
-     * <p>선택 일정을 조회합니다.</p>
+     * <p>선택 일정을 조회합니다.
+     * 해당 일정에 등록된 댓글도 포함하여 조회합니다.</p>
      *
      * @param scheduleId 일정의 고유 식별자
      * @return 조건에 맞는 일정 상세 정보 목록
      */
     @Transactional(readOnly = true)
-    public ScheduleGetResponse getSchedule(@PathVariable Long scheduleId) {
+    public ScheduleGetOneResponse getSchedule(@PathVariable Long scheduleId) {
         Schedule schedule = findScheduleOrThrow(scheduleId);
 
-        return new ScheduleGetResponse(
+        List<Comment> comments = getComments(scheduleId);
+
+        List<CommentGetResponse> dtos = new ArrayList<>();
+        for (Comment comment : comments) {
+            CommentGetResponse dto = new CommentGetResponse(
+                    comment.getId(),
+                    comment.getScheduleId(),
+                    comment.getContent(),
+                    comment.getAuthor(),
+                    comment.getCreatedAt(),
+                    comment.getUpdatedAt()
+            );
+            dtos.add(dto);
+        }
+
+        return new ScheduleGetOneResponse(
                 schedule.getId(),
                 schedule.getTitle(),
                 schedule.getDescription(),
                 schedule.getAuthor(),
+                dtos,
                 schedule.getCreatedAt(),
                 schedule.getUpdatedAt()
         );
@@ -111,6 +136,9 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleUpdateResponse update(Long scheduleId, ScheduleUpdateRequest request) {
+        validateText(request.getTitle(), 30, "일정 제목");
+        validateText(request.getAuthor(), "작성자명");
+
         Schedule schedule = findScheduleOrThrow(scheduleId);
 
         validatePassword(schedule.getPassword(), request.getPassword());
@@ -155,4 +183,28 @@ public class ScheduleService {
         }
     }
 
+    private List<Comment> getComments(Long scheduleId) {
+        return commentRepository.findByScheduleId(scheduleId);
+    }
+
+    private void validateText(String value, String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
+        }
+
+        String trimmed = value.trim();
+
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
+        }
+    }
+
+    private void validateText(String value, int maxLength, String fieldName) {
+
+        validateText(value, fieldName);
+
+        if (value.trim().length() > maxLength) {
+            throw new IllegalArgumentException(fieldName + "은(는) " + maxLength + "자 이하입니다.");
+        }
+    }
 }

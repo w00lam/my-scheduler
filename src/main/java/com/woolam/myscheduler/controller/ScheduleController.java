@@ -36,8 +36,8 @@ public class ScheduleController {
             description = "작성자명을 기준으로 등록된 일정을 수정일 기준 내림차순으로 정렬합니다. 작성자명은 조회 조건으로 포함될 수도 있고, 포함되지 않을 수도 있습니다.")
     @ApiResponse(responseCode = "200",description = "조회 성공")
     @GetMapping
-    public ResponseEntity<List<ScheduleGetResponse>> getAll(@RequestBody ScheduleGetRequest request) {
-        List<ScheduleGetResponse> response = scheduleService.getSchedules(request);
+    public ResponseEntity<List<ScheduleGetAllResponse>> getAll(@RequestBody ScheduleGetRequest request) {
+        List<ScheduleGetAllResponse> response = scheduleService.getSchedules(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -47,10 +47,10 @@ public class ScheduleController {
             @ApiResponse(responseCode = "404",description = "해당 일정을 찾을 수 없음")
     })
     @GetMapping("/{scheduleId}")
-    public ResponseEntity<ScheduleGetResponse> getOne(
+    public ResponseEntity<ScheduleGetOneResponse> getOne(
             @Parameter(description = "조회할 일정 ID",example = "1",required = true)
             @PathVariable Long scheduleId) {
-        ScheduleGetResponse response = scheduleService.getSchedule(scheduleId);
+        ScheduleGetOneResponse response = scheduleService.getSchedule(scheduleId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
