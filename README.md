@@ -23,16 +23,27 @@
 
 ```mermaid
 classDiagram
-direction TB
+direction BT
 class schedules {
-    bigint id PK "고유 식별자"
-    varchar(255) title "일정 제목"
-    varchar(255) author "작성자명"
-    varchar(255) description "일정 상세 내용"
-    varchar(255) password "검증용 비밀번호"
-    datetime(6) created_at "생성 일시"
-    datetime(6) updated_at "수정 일시"
+   id bigint
+   title varchar(255)
+   description varchar(255)
+   author varchar(255)
+   password varchar(255)
+   created_at datetime(6)
+   updated_at datetime(6)
 }
+class comments {
+   id bigint
+   schedule_id bigint
+   content varchar(255)
+   author varchar(255)
+   password varchar(255)
+   created_at datetime(6)
+   updated_at datetime(6)
+}
+
+comments  -->  schedules : schedule_id
 ```
 
 ---
@@ -107,41 +118,88 @@ class schedules {
 
 </details>
 
+<details>
+<summary><b>2️⃣ 도전 기능 체크리스트</b></summary>
+
+### Lv 5. 댓글 생성 `도전`
+- [x] <ins>**댓글 생성(댓글 작성하기)**</ins>
+  - [x] 일정에 댓글을 작성할 수 있습니다.
+    - [x] 댓글 생성 시, 포함되어야할 데이터
+    - [x] `댓글 내용`, `작성자명`, `비밀번호`, `작성/수정일`, `일정 고유식별자(ID)`를 저장
+  - [x] `작성/수정일`은 날짜와 시간을 모두 포함한 형태
+  - [x] 각 일정의 고유 식별자(ID)를 자동으로 생성하여 관리
+  - [x] 최초 생성 시, `수정일`은 `작성일`과 동일
+  - [x] `작성일`, `수정일` 필드는 `JPA Auditing`을 활용하여 적용합니다.
+  - [x] 하나의 일정에는 댓글을 10개까지만 작성할 수 있습니다.
+  - [x] API 응답에 `비밀번호`는 제외해야 합니다.
+
+### Lv 6. 일정 단건 조회 업그레이드 `도전`
+- [x] <ins>**일정 단건 조회 업그레이드**</ins>
+  - [x] 일정 단건 조회 시, 해당 일정에 등록된 댓글들을 포함하여 함께 응답합니다.
+  - [x] API 응답에 `비밀번호`는 제외해야 합니다.
+
+### Lv 7. 유저의 입력에 대한 검증 수행 `도전`
+
+- [x] 설명
+  - [x] 잘못된 입력이나 요청을 방지할 수 있습니다.
+  - [x] 데이터의`무결성을 보장`하고 애플리케이션의 예측 가능성을 높여줍니다.
+- [x] 조건
+  - [x] `일정 제목`은 최대 30자 이내로 제한, 필수값 처리
+  - [x] `일정 내용`은 최대 200자 이내로 제한, 필수값 처리
+  - [x] `댓글 내용`은 최대 100자 이내로 제한, 필수값 처리
+  - [x] `비밀번호`, `작성자명`은 필수값 처리
+</details>
+
 ---
 
 ## 프로젝트 구조
+
 ```text
-src/main/java/com/woolam/myscheduler/
-├── MySchedulerApplication.java      # 메인 애플리케이션 클래스
-├── config/
-│   └── SwaggerConfig.java           # Swagger 및 OpenAPI 설정
-├── controller/
-│   └── ScheduleController.java      # API 엔드포인트 핸들러
-├── dto/
-│   ├── ScheduleCreateRequest.java   # 생성 요청 DTO
-│   ├── ScheduleCreateResponse.java  # 생성 응답 DTO
-│   ├── ScheduleDeleteRequest.java   # 삭제 요청 DTO
-│   ├── ScheduleGetRequest.java      # 조회 요청 DTO
-│   ├── ScheduleGetResponse.java     # 조회 응답 DTO
-│   ├── ScheduleUpdateRequest.java   # 수정 요청 DTO
-│   └── ScheduleUpdateResponse.java  # 수정 응답 DTO
-├── entity/
-│   ├── BaseEntity.java              # 공통 시간 매핑 (Auditing)
-│   └── Schedule.java                # 일정 도메인 엔티티
-├── repository/
-│   └── ScheduleRepository.java      # JPA 리포지토리 인터페이스
-└── service/
-    └── ScheduleService.java         # 비즈니스 로직 및 검증
+src/main/java/com/woolam/myscheduler
+├── MySchedulerApplication.java
+│
+├── config
+│   └── SwaggerConfig.java
+│
+├── controller
+│   ├── CommentController.java
+│   └── ScheduleController.java
+│
+├── dto
+│   ├── CommentCreateRequest.java
+│   ├── CommentCreateResponse.java
+│   ├── CommentGetResponse.java
+│   ├── ScheduleCreateRequest.java
+│   ├── ScheduleCreateResponse.java
+│   ├── ScheduleDeleteRequest.java
+│   ├── ScheduleGetAllResponse.java
+│   ├── ScheduleGetOneResponse.java
+│   ├── ScheduleGetRequest.java
+│   ├── ScheduleUpdateRequest.java
+│   └── ScheduleUpdateResponse.java
+│
+├── entity
+│   ├── BaseEntity.java
+│   ├── Comment.java
+│   └── Schedule.java
+│
+├── repository
+│   ├── CommentRepository.java
+│   └── ScheduleRepository.java
+│
+└── service
+    ├── CommentService.java
+    └── ScheduleService.java
 ```
 
 ---
 
 ## 프로젝트 회고 (Retrospective)
 
-<details>
-<summary><b> 필수 기능</b></summary>
-
 ### 개발하며 고민하고 느낀 점
+
+<details>
+<summary><b> 필수 기능 (2026-04-08 완료)</b></summary>
 
 #### 1. 동적 조회 로직에 대한 고민과 해결
 전체 일정 조회 시 '작성자명'이라는 조건의 유무에 따라 서로 다른 결과를 반환해야 하는 과제가 있었습니다.
@@ -158,5 +216,85 @@ src/main/java/com/woolam/myscheduler/
 - **배운 점**:
     - 코드가 변할 때마다 문서가 자동으로 동기화되는 환경을 구축하며 수동 문서화의 실수를 줄이는 자동화의 가치를 배웠습니다.
     - 비록 이번에는 경험 중심의 역순 진행이었으나 이를 통해 역으로 **"왜 설계가 선행되어야 하는지"** 에 대한 중요성을 다시금 깊게 체감하는 계기가 되었습니다.
+</details>
 
+<details>
+<summary><b> 도전 기능 (2026-04-09 완료)</b></summary>
+
+#### 1. 댓글 제한 기능 구현하면서 고민했던 점
+
+일정에 댓글을 최대 10개까지 제한하는 기능을 구현하면서 어떻게 제한하는 게 좋을지 고민했다.
+
+* **문제:** 댓글 개수를 어디서 관리할지 고민됨
+  * Schedule 엔티티에 count 변수를 둘지
+  * 아니면 댓글 개수를 매번 조회할지
+
+* **고민한 방식:**
+  * **Schedule에 count 변수 추가**
+    * 장점: 조회 빠름
+    * 단점: 저장/삭제 실패 시 값이 틀어질 수 있고 동시성 문제 발생 가능
+  * **CommentRepository에서 count 조회**
+    * 장점: 항상 실제 데이터 기준이라 정확함, 구현도 단순
+    * 단점: 조회 쿼리 1번 추가
+
+* **해결:**
+  댓글이 최대 10개라 성능 부담이 거의 없어서
+  **Repository에서 count 조회하는 방식 선택**
+
+* **느낀 점:**
+  어떤 방식을 선택할때는 항상 이유와 근거가 있어야하며 성능이나 구조를 고려해보자.
+
+---
+
+#### 2. 일정 조회 시 댓글을 같이 조회하는 구조 고민
+
+일정을 조회하면 해당 일정에 달린 댓글도 같이 내려줘야 해서 구조를 고민했다.
+
+* **처음 생각:**
+  Controller에서 ScheduleService랑 CommentService를 둘 다 호출하면 되지 않을까?
+
+* **문제점:**
+  * Controller가 데이터를 조합하는 역할까지 하게 됨
+  * 책임이 애매해지고 구조가 지저분해짐
+
+* **해결 과정:**
+  Controller는 하나의 Service만 호출하도록 하고
+  **ScheduleService에서 댓글까지 같이 조회해서 응답으로 반환**
+
+* **추가 고민:**
+  ScheduleService에서 CommentRepository를 직접 써도 되나?
+
+* **정리한 기준:**
+  * 단순 조회 → Repository 직접 사용 가능
+  * 조건/정책 생기면 → CommentService로 위임
+
+* **느낀 점:**
+  Controller는 최대한 단순하게 유지
+  실제 로직은 Service에서 처리
+</details>
+
+<details>
+<summary><b> 추가 개선 사항 (진행중) </b></summary>
+이번 과제를 진행하면서 구현하지 못했지만 이후 리팩토링을 통해 개선하고 싶은 부분들입니다.
+
+- [ ] **예외 처리 로직 개선 (Service 중심)**
+  - 현재는 각 로직에서 예외를 개별적으로 처리하고 있음
+  - Service 단계에서 공통적으로 예외를 관리할 수 있도록 구조를 정리할 필요가 있다고 느낌
+  - 예외 상황에 대한 흐름을 한 곳에서 관리하도록 개선 예정
+
+- [ ] **코드 파편화 개선 (캡슐화)**
+  - 객체 생성이나 값 설정이 여러 곳에서 나뉘어 있어 흐름을 따라가기 어려운 부분이 있었음
+  - 생성자나 메서드를 활용해서 관련된 데이터들을 한 번에 처리하도록 구조를 개선할 예정
+  - 코드의 응집도를 높이고 읽기 쉽게 만드는 것이 목표
+
+- [ ] **API 응답 구조 통일**
+  - 현재는 DTO를 그대로 반환하지만,
+  - 향후 `status`, `message`, `data` 구조로 감싸는 공통 응답 포맷 적용 예정
+```json
+{
+  "status": 200,
+  "message": "요청 성공",
+  "data": { "..." }
+}
+```
 </details>
