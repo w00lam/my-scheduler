@@ -1,7 +1,6 @@
-package com.woolam.myscheduler.dto;
+package com.woolam.myscheduler.dto.comment;
 
 import com.woolam.myscheduler.entity.Comment;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
@@ -15,4 +14,14 @@ public record CommentGetResponse(Long id,
                                  LocalDateTime createdAt,
                                  LocalDateTime updatedAt
 ) {
+    public static CommentGetResponse from(Comment comment) {
+        return new CommentGetResponse(
+                comment.getId(),
+                comment.getScheduleId(),
+                comment.getAuthor(),
+                comment.getPassword(),
+                comment.getCreatedAt(),
+                comment.getUpdatedAt()
+        );
+    }
 }

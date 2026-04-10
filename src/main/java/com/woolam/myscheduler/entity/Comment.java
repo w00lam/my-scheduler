@@ -1,5 +1,6 @@
 package com.woolam.myscheduler.entity;
 
+import com.woolam.myscheduler.dto.comment.CommentCreateRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,5 +32,17 @@ public class Comment extends BaseEntity {
         this.content = content;
         this.author = author;
         this.password = password;
+    }
+
+    /**
+     * <p>CommentCreateRequest를 기반으로 Comment 생성</p>
+     */
+    public static Comment create(Long scheduleId, CommentCreateRequest request) {
+        return new Comment(
+                scheduleId,
+                request.getContent(),
+                request.getAuthor(),
+                request.getPassword()
+        );
     }
 }

@@ -1,5 +1,9 @@
 package com.woolam.myscheduler.entity;
 
+import com.woolam.myscheduler.common.exception.BusinessException;
+import com.woolam.myscheduler.common.exception.ErrorCode;
+import com.woolam.myscheduler.dto.schedule.ScheduleCreateRequest;
+import com.woolam.myscheduler.dto.schedule.ScheduleUpdateRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,13 +38,31 @@ public class Schedule extends BaseEntity {
     }
 
     /**
+     * <p>ScheduleCreateRequest 기반으로 Schedule 생성</p>
+     */
+    public static Schedule create(ScheduleCreateRequest request) {
+        return new Schedule(
+                request.getTitle(),
+                request.getDescription(),
+                request.getAuthor(),
+                request.getPassword()
+        );
+    }
+
+    /**
      * <p>업데이트를 위한 메서드입니다.(Dirty Checking)</p>
      *
-     * @param title  수정할 제목입니다.
-     * @param author 수정할 작성자입니다.
+     * @param request 수정할 제목, 작성자입니다.
      */
-    public void update(String title, String author) {
-        this.title = title;
-        this.author = author;
+    public void checkPasswordAndUpdate(ScheduleUpdateRequest request) {
+        validatePassword(request.getPassword());
+        this.title = request.getTitle();
+        this.author = request.getAuthor();
+    }
+
+    public void validatePassword(String password) {
+        if (!this.password.equals(password)) {
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+        }
     }
 }

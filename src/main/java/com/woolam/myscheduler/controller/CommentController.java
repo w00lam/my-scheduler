@@ -1,7 +1,8 @@
 package com.woolam.myscheduler.controller;
 
-import com.woolam.myscheduler.dto.CommentCreateRequest;
-import com.woolam.myscheduler.dto.CommentCreateResponse;
+import com.woolam.myscheduler.common.response.CommonApiResponse;
+import com.woolam.myscheduler.dto.comment.CommentCreateRequest;
+import com.woolam.myscheduler.dto.comment.CommentCreateResponse;
 import com.woolam.myscheduler.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,8 +28,11 @@ public class CommentController {
     @Operation(summary = "댓글 생성", description = "댓글을 생성합니다.")
     @ApiResponse(responseCode = "201", description = "등록 성공")
     @PostMapping("/comments")
-    public ResponseEntity<CommentCreateResponse> createComment(@PathVariable Long scheduleId, @RequestBody CommentCreateRequest request) {
+    public ResponseEntity<CommonApiResponse<CommentCreateResponse>> createComment(@PathVariable Long scheduleId, @RequestBody CommentCreateRequest request) {
+        request.validate();
         CommentCreateResponse response = commentService.createComment(scheduleId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonApiResponse.success(201, "댓글 생성 성공", response)
+                );
     }
 }

@@ -1,4 +1,6 @@
-package com.woolam.myscheduler.dto;
+package com.woolam.myscheduler.dto.schedule;
+
+import com.woolam.myscheduler.entity.Schedule;
 
 import java.time.LocalDateTime;
 
@@ -12,4 +14,14 @@ public record ScheduleGetAllResponse(Long id,
                                      LocalDateTime createdAt,
                                      LocalDateTime modifiedAt
 ) {
+    public static ScheduleGetAllResponse from(Schedule schedule) {
+        return new ScheduleGetAllResponse(
+                schedule.getId(),
+                schedule.getTitle(),
+                schedule.getDescription(),
+                schedule.getAuthor(),
+                schedule.getCreatedAt(),
+                schedule.getUpdatedAt()
+        );
+    }
 }

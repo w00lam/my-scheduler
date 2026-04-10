@@ -1,11 +1,16 @@
 package com.woolam.myscheduler.service;
 
-import com.woolam.myscheduler.dto.CommentCreateRequest;
-import com.woolam.myscheduler.dto.CommentCreateResponse;
+import com.woolam.myscheduler.common.exception.BusinessException;
+import com.woolam.myscheduler.common.exception.ErrorCode;
+import com.woolam.myscheduler.common.exception.ErrorDetail;
+import com.woolam.myscheduler.dto.comment.CommentCreateRequest;
+import com.woolam.myscheduler.dto.comment.CommentCreateResponse;
 import com.woolam.myscheduler.entity.Comment;
 import com.woolam.myscheduler.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * <p>댓글 관리 비즈니스 로직을 처리하는 서비스 클래스입니다.
@@ -31,47 +36,14 @@ public class CommentService {
         int count = commentRepository.countByScheduleId(scheduleId);
 
         if (count >= 10) {
-            throw new IllegalStateException("댓글은 최대 10개까지 가능합니다.");
+            throw new BusinessException(
+                    ErrorCode.COMMENT_LIMIT_EXCEEDED,
+                    List.of(ErrorDetail.of("commentCount", "댓글은 최대 10개까지 가능합니다"))
+            );
         }
 
-        validateText(request.getContent(), 100, "댓글 내용");
-        validateText(request.getAuthor(), "작성자명");
-        validateText(request.getPassword(), "비밀번호");
-
-        Comment comment = new Comment(
-                scheduleId,
-                request.getContent(),
-                request.getAuthor(),
-                request.getPassword());
-        Comment savedComment = commentRepository.save(comment);
-        return new CommentCreateResponse(
-                savedComment.getId(),
-                savedComment.getScheduleId(),
-                savedComment.getAuthor(),
-                savedComment.getContent(),
-                savedComment.getCreatedAt(),
-                savedComment.getUpdatedAt()
-        );
-    }
-
-    private void validateText(String value, String fieldName) {
-        if (value == null) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-
-        String trimmed = value.trim();
-
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-    }
-
-    private void validateText(String value, int maxLength, String fieldName) {
-
-        validateText(value, fieldName);
-
-        if (value.trim().length() > maxLength) {
-            throw new IllegalArgumentException(fieldName + "은(는) " + maxLength + "자 이하입니다.");
-        }
+        Comment comment = Comment.create(scheduleId, request);
+        commentRepository.save(comment);
+        return CommentCreateResponse.from(comment);
     }
 }

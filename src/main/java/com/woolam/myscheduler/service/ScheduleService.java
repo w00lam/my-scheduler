@@ -1,6 +1,10 @@
 package com.woolam.myscheduler.service;
 
-import com.woolam.myscheduler.dto.*;
+import com.woolam.myscheduler.common.exception.BusinessException;
+import com.woolam.myscheduler.common.exception.ErrorCode;
+import com.woolam.myscheduler.common.exception.ErrorDetail;
+import com.woolam.myscheduler.dto.comment.CommentGetResponse;
+import com.woolam.myscheduler.dto.schedule.*;
 import com.woolam.myscheduler.entity.Comment;
 import com.woolam.myscheduler.entity.Schedule;
 import com.woolam.myscheduler.repository.CommentRepository;
@@ -12,7 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * <p>일정 관리 비즈니스 로직을 처리하는 서비스 클래스입니다.
@@ -36,57 +39,40 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleCreateResponse createSchedule(ScheduleCreateRequest request) {
-        validateText(request.getTitle(), 30, "일정 제목");
-        validateText(request.getDescription(), 200, "일정 내용");
-        validateText(request.getAuthor(), "작성자명");
-        validateText(request.getAuthor(), "비밀번호");
+        Schedule schedule = Schedule.create(request);
+        scheduleRepository.save(schedule);
 
-        Schedule schedule = new Schedule(
-                request.getTitle(),
-                request.getDescription(),
-                request.getAuthor(),
-                request.getPassword()
-        );
-        Schedule savedSchedule = scheduleRepository.save(schedule);
-        return new ScheduleCreateResponse(
-                savedSchedule.getId(),
-                savedSchedule.getTitle(),
-                savedSchedule.getDescription(),
-                savedSchedule.getAuthor(),
-                savedSchedule.getCreatedAt(),
-                savedSchedule.getUpdatedAt()
-        );
+        return ScheduleCreateResponse.from(schedule);
     }
 
     /**
-     * <p>일정 목록을 조회합니다.
-     * 작성자명이 제공될 경우 해당 작성자의 일정만 필터링하며
-     * 수정일 기준 내림차순으로 정렬합니다.</p>
+     * <p>일정 목록을 조회합니다.</p>
      *
-     * @param request 조회 필터 조건(작성자명)이 담긴 DTO
-     * @return 조건에 맞는 일정 상세 정보 목록
+     * @return 일정 상세 정보 목록
+     * @author woolam
+     * @since 2026-04-10
      */
     @Transactional(readOnly = true)
-    public List<ScheduleGetAllResponse> getSchedules(ScheduleGetRequest request) {
-        List<Schedule> schedules = Optional.ofNullable(request.getAuthor())
-                .filter(author -> !author.isBlank())
-                .map(scheduleRepository::findByAuthorOrderByUpdatedAtDesc)
-                .orElseGet(scheduleRepository::findAllByOrderByUpdatedAtDesc);
-        List<ScheduleGetAllResponse> dtos = new ArrayList<>();
+    public List<ScheduleGetAllResponse> getSchedules() {
+        return scheduleRepository.findAllByOrderByUpdatedAtDesc().stream()
+                .map(ScheduleGetAllResponse::from)
+                .toList();
+    }
 
-        for (Schedule schedule : schedules) {
-            ScheduleGetAllResponse dto = new ScheduleGetAllResponse(
-                    schedule.getId(),
-                    schedule.getTitle(),
-                    schedule.getDescription(),
-                    schedule.getAuthor(),
-                    schedule.getCreatedAt(),
-                    schedule.getUpdatedAt()
-            );
-            dtos.add(dto);
-        }
-
-        return dtos;
+    /**
+     * <p>해당 작성자의 일정만 필터링하여
+     * 수정일 기준 내림차순으로 정렬합니다.</p>
+     *
+     * @param author 작성자명 변수입니다.
+     * @return 조건에 맞는 일정 상세 정보 목록
+     * @author woolam
+     * @since 2026-04-10
+     */
+    @Transactional(readOnly = true)
+    public List<ScheduleGetAllResponse> getSchedulesByAuthor(String author) {
+        return scheduleRepository.findByAuthorOrderByUpdatedAtDesc(author).stream()
+                .map(ScheduleGetAllResponse::from)
+                .toList();
     }
 
     /**
@@ -98,32 +84,13 @@ public class ScheduleService {
      */
     @Transactional(readOnly = true)
     public ScheduleGetOneResponse getSchedule(@PathVariable Long scheduleId) {
-        Schedule schedule = findScheduleOrThrow(scheduleId);
+        Schedule schedule = this.findScheduleOrThrow(scheduleId);
 
-        List<Comment> comments = getComments(scheduleId);
+        List<CommentGetResponse> commentDtos = getComments(scheduleId).stream()
+                .map(CommentGetResponse::from)
+                .toList();
 
-        List<CommentGetResponse> dtos = new ArrayList<>();
-        for (Comment comment : comments) {
-            CommentGetResponse dto = new CommentGetResponse(
-                    comment.getId(),
-                    comment.getScheduleId(),
-                    comment.getContent(),
-                    comment.getAuthor(),
-                    comment.getCreatedAt(),
-                    comment.getUpdatedAt()
-            );
-            dtos.add(dto);
-        }
-
-        return new ScheduleGetOneResponse(
-                schedule.getId(),
-                schedule.getTitle(),
-                schedule.getDescription(),
-                schedule.getAuthor(),
-                dtos,
-                schedule.getCreatedAt(),
-                schedule.getUpdatedAt()
-        );
+        return ScheduleGetOneResponse.from(schedule, commentDtos);
     }
 
     /**
@@ -136,75 +103,32 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleUpdateResponse update(Long scheduleId, ScheduleUpdateRequest request) {
-        validateText(request.getTitle(), 30, "일정 제목");
-        validateText(request.getAuthor(), "작성자명");
-
         Schedule schedule = findScheduleOrThrow(scheduleId);
+        schedule.checkPasswordAndUpdate(request);
 
-        validatePassword(schedule.getPassword(), request.getPassword());
-
-        schedule.update(
-                request.getTitle(),
-                request.getAuthor()
-        );
-        return new ScheduleUpdateResponse(
-                schedule.getId(),
-                schedule.getTitle(),
-                schedule.getDescription(),
-                schedule.getAuthor(),
-                schedule.getCreatedAt(),
-                schedule.getUpdatedAt()
-        );
+        return ScheduleUpdateResponse.from(schedule);
     }
 
     /**
      * <p>선택 일정을 고유 식별자로 삭제합니다.</p>
      *
      * @param scheduleId 일정의 고유 식별자
-     * @param request    삭제 요청에 필요한 비밀번호
+     * @param password   삭제 요청에 필요한 비밀번호
      */
     @Transactional
-    public void delete(Long scheduleId, ScheduleDeleteRequest request) {
+    public void delete(Long scheduleId, String password) {
         Schedule schedule = findScheduleOrThrow(scheduleId);
-
-        validatePassword(schedule.getPassword(), request.getPassword());
+        schedule.validatePassword(password);
 
         scheduleRepository.deleteById(scheduleId);
     }
 
     private Schedule findScheduleOrThrow(Long scheduleId) {
         return scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 일정입니다."));
-    }
-
-    private void validatePassword(String savedPassword, String inputPassword) {
-        if (!savedPassword.equals(inputPassword)) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
     }
 
     private List<Comment> getComments(Long scheduleId) {
         return commentRepository.findByScheduleId(scheduleId);
-    }
-
-    private void validateText(String value, String fieldName) {
-        if (value == null) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-
-        String trimmed = value.trim();
-
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException(fieldName + "은(는) 필수입니다.");
-        }
-    }
-
-    private void validateText(String value, int maxLength, String fieldName) {
-
-        validateText(value, fieldName);
-
-        if (value.trim().length() > maxLength) {
-            throw new IllegalArgumentException(fieldName + "은(는) " + maxLength + "자 이하입니다.");
-        }
     }
 }
