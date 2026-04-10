@@ -8,12 +8,47 @@
 - **설명**: 사용자가 자신의 일정을 등록, 조회, 수정, 삭제할 수 있는 관리 시스템입니다.
 - **핵심 가치**: 데이터 무결성을 위한 비밀번호 검증과 JPA Auditing을 활용한 자동화된 시간 기록.
 
+1. 3 Layer Architecture(Controller, Service, Repository)를 적절히 적용했는지 확인해 보고, 왜 이러한 구조가 필요한지 작성해 주세요.
+<details>
+<summary><b>답변</b></summary>
+
+>프로젝트 구조를 보면 적절히 적용했다고 판단할 수 있습니다.  
+3 Layer Architecture는 애플리케이션을 Controller, Service, Repository의 세 계층으로 나누어 각각의 역할을 분리하는 구조입니다.
+Controller는 클라이언트의 HTTP 요청을 처리하는 계층이며 Service는 비즈니스 로직을 수행하는 계층입니다. 
+Repository는 데이터베이스 접근을 담당하는 계층으로 데이터의 조회와 저장을 수행합니다.  
+위와같은 구조로 관심사 분리를 통해 각 계층이 역할별로 분리되어 코드의 가독성과 이해도와 유지보수성이 향상되어 
+특정 계층의 변경이 다른 계층에 미치는 영향을 최소화할 수 있습니다.
+또한 테스트 용이성 측면에서도 장점이 있습니다. 각 계층을 독립적으로 테스트할 수 있어 검증이 수월해집니다. 
+마지막으로 확장성이 뛰어나기 때문에 새로운 기능이 추가되더라도 기존 구조를 유지하면서 유연하게 확장할 수 있습니다.
+</details>
+
+2. `@RequestParam`, `@PathVariable`, `@RequestBody`가 각각 어떤 어노테이션인지, 어떤 특징을 갖고 있는지 작성해 주세요.
+<details>
+<summary><b>답변</b></summary>
+
+>먼저 `@RequestParam`은 HTTP 요청의 Query Parameter를 바인딩하는 어노테이션입니다.
+URL에서 `?key=value` 형태로 전달되는 데이터를 처리하며 주로 검색이나 필터링과 같은 기능에서 사용됩니다.
+예를 들어 `/schdedules?author=name`과 같이 요청이 들어오면 author 값을 받아서 처리할 수 있습니다.
+또한 required 옵션을 통해 해당 파라미터가 필수인지 선택인지 설정할 수 있습니다.  
+다음으로 `@PathVariable`은 URL 경로 자체에 포함된 값을 바인딩하는 어노테이션입니다.
+RESTful API에서 특정 리소스를 식별할 때 주로 사용되며 URL 구조 자체에 의미를 부여합니다.
+예를 들어 `/schedules/1`과 같이 요청이 들어오면 1이라는 값을 id로 받아 해당 스케줄을 조회할 수 있습니다.
+이 값은 일반적으로 필수 값으로 사용됩니다.  
+마지막으로 `@RequestBody`는 HTTP 요청 Body에 포함된 JSON 데이터를 객체로 변환하여 바인딩하는 어노테이션입니다.
+Jackson 라이브러리를 통해 JSON이 Java 객체로 매핑되며 복잡한 데이터 구조를 처리할 수 있다는 특징이 있습니다.
+주로 POST, PUT, PATCH와 같이 데이터를 생성하거나 수정하는 요청에서 사용합니다.
+예를 들어 스케줄 생성 요청 시 JSON 형태의 데이터를 전달하면 이를 ScheduleCreateRequest 객체로 변환하여 처리합니다.  
+이 세 가지를 비교하면 `@RequestParam`은 Query String을 통해 단순 값을 전달받을 때 사용되고
+`@PathVariable`은 URL 경로를 통해 리소스를 식별할 때 사용되며
+`@RequestBody`는 HTTP Body를 통해 JSON 객체 형태의 데이터를 전달받을 때 사용합니다.
+</details>
+
 ---
 
 ## 기술 스택
 - **Language**: Java 17
 - **Framework**: Spring Boot 3.x
-- **Database**: H2 Database
+- **Database**: H2 / MySQL
 - **ORM**: Spring Data JPA
 - **API Test**: Postman, Swagger (OpenAPI 3.0)
 
@@ -50,25 +85,91 @@ comments  -->  schedules : schedule_id
 
 ## 실행 방법
 
-### 1. 애플리케이션 실행
+### 1. 프로젝트 클론
+```bash
+git clone https://github.com/your-username/your-repository.git
+cd your-repository
+```
+### 2.애플리케이션 실행
 * **IDE 사용 시**: `MySchedulerApplication.java` 파일을 실행(Run)합니다.
 * **터미널(Gradle) 사용 시**: 프로젝트 루트 경로에서 아래 명령어를 입력합니다.
 ```bash
 ./gradlew bootRun
 ```
 
-### 2. API 테스트 (Swagger)
+### 3. API 테스트 (Swagger)
+애플리케이션 실행 후 브라우저에서 아래 주소로 접속하면  
+Swagger UI를 통해 API 명세를 확인하고 테스트할 수 있습니다.
 * **주소**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 * **방법**: 접속 후 각 API의 **'Try it out'** 버튼을 클릭하여 요청을 보낼 수 있습니다.
 
-### 3. API 명세서
-| 기능 | 메서드 | 엔드포인트                         | 설명 |
-| :--- | :---: |:------------------------------| :--- |
-| **일정 생성** | `POST` | `/api/schedules`              | 새로운 일정을 등록합니다. (비밀번호 필수) |
-| **일정 목록 조회** | `GET` | `/api/schedules`              | 전체 목록 혹은 작성자명 필터 조회를 수행합니다. |
-| **일정 단건 조회** | `GET` | `/api/schedules/{scheduleId}` | 특정 ID를 가진 일정의 상세 정보를 조회합니다. |
-| **일정 수정** | `PATCH` | `/api/schedules/{scheduleId}` | **비밀번호 일치 시** 일정 제목과 작성자명을 수정합니다. |
-| **일정 삭제** | `DELETE` | `/api/schedules/{scheduleId}` | **비밀번호 일치 시** 해당 일정을 완전히 삭제합니다. |
+### 4. API 명세서
+<details>
+<summary>API 전체 보기</summary>
+
+---
+
+# Schedule API
+
+| Method | URL | 설명 | 요청 | 응답 |
+|--------|-----|------|------|------|
+| POST | /api/schedules | 일정 생성 | body | 201 |
+| GET | /api/schedules | 일정 목록 조회 | query (author, optional) | 200 |
+| GET | /api/schedules/{scheduleId} | 일정 단건 조회 | path | 200 |
+| PATCH | /api/schedules/{scheduleId} | 일정 수정 | path + body | 200 |
+| DELETE | /api/schedules/{scheduleId} | 일정 삭제 | path + query(password) | 200 |
+
+---
+
+# Comment API
+
+| Method | URL | 설명 | 요청 | 응답 |
+|--------|-----|------|------|------|
+| POST | /api/schedules/{scheduleId}/comments | 댓글 생성 | path + body | 201 |
+
+---
+
+# 요청 데이터 요약
+
+## 일정 생성 / 수정
+
+| 필드 | 설명 |
+|------|------|
+| title | 일정 제목 |
+| description | 일정 내용 |
+| author | 작성자 |
+| password | 비밀번호 |
+
+---
+
+## 댓글 생성
+
+| 필드 | 설명 |
+|------|------|
+| content | 댓글 내용 |
+| author | 작성자 |
+| password | 비밀번호 |
+
+---
+
+# 에러 응답 (공통)
+
+| 필드 | 설명 |
+|------|------|
+| errorCode | 에러 코드 |
+| message | 에러 메시지 |
+| details | 필드별 에러 리스트 |
+
+---
+
+# 요약
+
+- Schedule CRUD API 구성
+- Comment 생성 API 포함
+- Validation 에러는 details 리스트로 반환
+- 공통 응답 포맷(CommonApiResponse) 사용
+
+</details>
 
 ---
 ## 요구사항 체크리스트
@@ -274,22 +375,22 @@ src/main/java/com/woolam/myscheduler
 </details>
 
 <details>
-<summary><b> 추가 개선 사항 (진행중) </b></summary>
+<summary><b> 추가 개선 사항 (2026-04-10 완료) </b></summary>
 이번 과제를 진행하면서 구현하지 못했지만 이후 리팩토링을 통해 개선하고 싶은 부분들입니다.
 
-- [ ] **예외 처리 로직 개선 (Service 중심)**
-  - 현재는 각 로직에서 예외를 개별적으로 처리하고 있음
-  - Service 단계에서 공통적으로 예외를 관리할 수 있도록 구조를 정리할 필요가 있다고 느낌
-  - 예외 상황에 대한 흐름을 한 곳에서 관리하도록 개선 예정
+- [x] **예외 처리 로직 개선 (Service 중심)**
+  - ~~현재는 각 로직에서 예외를 개별적으로 처리하고 있음~~
+  - ~~Service 단계에서 공통적으로 예외를 관리할 수 있도록 구조를 정리할 필요가 있다고 느낌~~
+  - ~~예외 상황에 대한 흐름을 한 곳에서 관리하도록 개선 예정~~
 
-- [ ] **코드 파편화 개선 (캡슐화)**
-  - 객체 생성이나 값 설정이 여러 곳에서 나뉘어 있어 흐름을 따라가기 어려운 부분이 있었음
-  - 생성자나 메서드를 활용해서 관련된 데이터들을 한 번에 처리하도록 구조를 개선할 예정
-  - 코드의 응집도를 높이고 읽기 쉽게 만드는 것이 목표
+- [x] **코드 파편화 개선 (캡슐화)**
+  - ~~객체 생성이나 값 설정이 여러 곳에서 나뉘어 있어 흐름을 따라가기 어려운 부분이 있었음~~
+  - ~~생성자나 메서드를 활용해서 관련된 데이터들을 한 번에 처리하도록 구조를 개선할 예정~~
+  - ~~코드의 응집도를 높이고 읽기 쉽게 만드는 것이 목표~~
 
-- [ ] **API 응답 구조 통일**
-  - 현재는 DTO를 그대로 반환하지만,
-  - 향후 `status`, `message`, `data` 구조로 감싸는 공통 응답 포맷 적용 예정
+- [x] **API 응답 구조 통일**
+  - ~~현재는 DTO를 그대로 반환하지만~~
+  - ~~향후 `status`, `message`, `data` 구조로 감싸는 공통 응답 포맷 적용 예정~~
 ```json
 {
   "status": 200,
@@ -298,3 +399,4 @@ src/main/java/com/woolam/myscheduler
 }
 ```
 </details>
+
